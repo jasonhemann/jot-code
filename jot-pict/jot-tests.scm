@@ -170,3 +170,31 @@
 (test "jot-interface 7"
   (jot-interface '(1 1 1 1 1 0 0 0))
   '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 157))
+
+(test "jot-bn-interface 1"
+  (jot-bn-interface '(0))
+  '((lambda (y) (lambda (z) (((lambda (x) (lambda (y) x)) z) (y z)))) . 10))
+
+(test "jot-bn-interface 2"
+  (jot-bn-interface '(1))
+  '((lambda (x) (lambda (y) ((lambda (x) x) (x y)))) . 0))
+
+(test "jot-bn-interface 3"
+  (jot-bn-interface '(1 0))
+  '((lambda (y) (lambda (z) (((lambda (x) (lambda (y) x)) z) (y z)))) . 23))
+
+(test "jot-bn-interface 4"
+  (jot-bn-interface '(0 1))
+  '((lambda (x) (lambda (y) ((lambda (y) (lambda (z) (((lambda (x) (lambda (y) x)) z) (y z)))) (x y)))) . 10))
+
+(test "jot-bn-interface 5"
+  (jot-bn-interface '(0 0))
+  '((lambda (x) (lambda (y) x)) . 34))
+
+(test "jot-bn-interface 6"
+  (jot-bn-interface '(1 1 1 0 0))
+  '((lambda (x) (lambda (y) x)) . 82))
+
+(test "jot-bn-interface 7"
+  (jot-bn-interface '(1 1 1 1 1 0 0 0))
+  '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 133))

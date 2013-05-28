@@ -1,5 +1,3 @@
-(load "../mk/mk.scm")
-(load "../mk/numbers.ss")
 (load "pmatch.scm")
 (load "test.scm")
 
@@ -163,6 +161,7 @@
                                      (lambda (x) (lambda (y) x)))))
                        (jot-bv dbls n-v))))))
 
+;; bv to wnf
 (define jot-bv-interface
   (lambda (bls)
     ((jot-bv bls '(lambda (x) x)) 0)))
@@ -224,6 +223,7 @@
               (nrand <- (norm rand))
               (return-state `(,nrat ,nrand)))]))])))
 
+;; no to nf
 (define jot
   (lambda (bls v)
     (pmatch bls
@@ -239,5 +239,20 @@
 (define jot-interface
   (lambda (bls)
     ((jot bls '(lambda (x) x)) 0)))
+
+;; no to whnf
+(define jot-bn
+  (lambda (bls v)
+    (pmatch bls
+      (() (return-state v))
+      ((1 . ,dbls) (jot-bn dbls `(lambda (x) (lambda (y) (,v (x y))))))
+      ((0 . ,dbls) (do bind-state
+                       (n-v <- (bn `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                                     (lambda (x) (lambda (y) x)))))
+                       (jot-bn dbls n-v))))))
+
+(define jot-bn-interface
+  (lambda (bls)
+    ((jot-bn bls '(lambda (x) x)) 0)))
 
 (load "jot-tests.scm")
