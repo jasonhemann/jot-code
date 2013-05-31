@@ -128,7 +128,7 @@
       [(lambda (,x) ,body) (guard (symbol? x)) (return-state exp)]
       [(,rator ,rand)
        (do bind-state
-           (v-rator <- (bv rator))
+         (v-rator <- (bv rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
              (do bind-state
@@ -150,6 +150,34 @@
             (do bind-state
                 (v-rand <- (bv rand))
                 (return-state `(,v-rator ,v-rand)))]))])))
+
+(define he
+  (lambda (exp)
+    (pmatch exp
+      [,exp (guard (symbol? exp)) (return-state exp)]
+      [(lambda (,x) ,body) (guard (symbol? x))
+       (do bind-state
+         (v-body <- (he body))
+         (return-state `(lambda (,x) ,v-body)))]
+      [(,rator ,rand)
+       (do bind-state
+         (v-rator <- (he rator))
+         (pmatch v-rator
+           [,v-rator (guard (symbol? v-rator))
+            (return-state `(,v-rator ,rand))]
+           [(lambda (,x) ,body) (guard (symbol? x))
+            (do bind-state
+              (s <- get-state)
+              (if (< s MAX_BETA)
+                  (do bind-state
+                    (put-state (add1 s))
+                    (rec <- (beta rand x body))
+                    (he rec))
+                  (do bind-state
+                    (put-state MAX_BETA)
+                    (return-state '_))))]
+           [(,rat ,ran)
+            (return-state `(,v-rator ,rand))]))])))
 
 (define jot-bv
   (lambda (bls v)
@@ -255,4 +283,22 @@
   (lambda (bls)
     ((jot-bn bls '(lambda (x) x)) 0)))
 
+;; head spine to head normal form
+(define jot-he
+  (lambda (bls v)
+    (pmatch bls
+      (() (return-state v))
+      ((1 . ,dbls) (jot-he dbls `(lambda (x) (lambda (y) (,v (x y))))))
+      ((0 . ,dbls) (do bind-state
+                       (n-v <- (he `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                                     (lambda (x) (lambda (y) x)))))
+                       (jot-he dbls n-v))))))
+
+;; head spine to head normal form
+(define jot-he-interface
+  (lambda (bls)
+    ((jot-he bls '(lambda (x) x)) 0)))
+
+
 (load "jot-tests.scm")
+

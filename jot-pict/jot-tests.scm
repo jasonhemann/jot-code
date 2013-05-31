@@ -198,3 +198,32 @@
 (test "jot-bn-interface 7"
   (jot-bn-interface '(1 1 1 1 1 0 0 0))
   '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 133))
+
+(test "jot-he (0)"
+  (jot-he-interface '(0))
+  '((lambda (y) (lambda (z) z)) . 13))
+
+(test "jot-he (1)"
+  (jot-he-interface '(1))
+  '((lambda (x) (lambda (y) ((lambda (x) x) (x y)))) . 0))
+
+;; (test "jot-he (1 0)"
+;;   (jot-he-interface '(1 0))
+;;   '(lambda (g0) (lambda (z) z)))
+
+(test "jot-he (0 1)"
+  (jot-he-interface '(0 1))
+  '((lambda (x) (lambda (y) ((lambda (y) (lambda (z) z)) (x y)))) . 13))
+
+(test "jot-he (0 0)"
+  (jot-he-interface '(0 0))
+  '((lambda (x) (lambda (y) x)) . 16))
+
+(test "jot-he K"
+  (jot-he-interface '(1 1 1 0 0))
+  '((lambda (x) (lambda (y) x)) . 78))
+
+(test "jot-he S"
+  (jot-he-interface '(1 1 1 1 1 0 0 0))
+  '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 161))
+
