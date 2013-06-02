@@ -251,6 +251,34 @@
   (jot-he-interface '(1 1 1 1 1 0 0 0))
   '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 161))
 
+(test "jot-ha (0)"
+  (jot-ha-interface '(0))
+  '((lambda (y) (lambda (z) z)) . 13))
+
+(test "jot-ha (1)"
+  (jot-ha-interface '(1))
+  '((lambda (x) (lambda (y) (x y))) . 1))
+
+(test "jot-ha (1 0)"
+  (jot-ha-interface '(1 0))
+  '((lambda (y) (lambda (z) z)) . 21))
+
+(test "jot-ha (0 1)"
+  (jot-ha-interface '(0 1))
+  '((lambda (x) (lambda (y) (lambda (z) z))) . 15))
+
+(test "jot-ha (0 0)"
+  (jot-ha-interface '(0 0))
+  '((lambda (x) (lambda (y) x)) . 16))
+
+(test "jot-ha K"
+  (jot-ha-interface '(1 1 1 0 0))
+  '((lambda (x) (lambda (y) x)) . 74))
+
+(test "jot-ha S"
+  (jot-ha-interface '(1 1 1 1 1 0 0 0))
+  '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 157))
+
 (test "jot-ao-interface 1"
   (jot-ao-interface '(0))
   '((lambda (y) (lambda (z) z)) . 13))
