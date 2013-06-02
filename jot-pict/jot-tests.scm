@@ -71,6 +71,30 @@
   ((bn '((lambda (x) x) ((lambda (y) y) z))) 0)
   '(z . 2))
 
+(test "ao 1"
+  ((ao 'x) 0)
+  '(x . 0))
+
+(test "ao 2"
+  ((ao '(lambda (x) x)) 0)
+  '((lambda (x) x) . 0))
+
+(test "ao 3"
+  ((ao '(x ((lambda (x) x) y))) 0)
+  '((x y) . 1))
+
+(test "ao 4"
+  ((ao '((a b) ((lambda (x) x) y))) 0)
+  '(((a b) y) . 1))
+
+(test "ao 5"
+  ((ao '((lambda (x) x) (a b))) 0)
+  '((a b) . 1))
+
+(test "ao 6"
+  ((ao '((lambda (x) x) ((lambda (y) y) z))) 0)
+  '(z . 2))
+
 (test "norm 1"
   ((norm 'x) 0)
   '(x . 0))
@@ -227,3 +251,34 @@
   (jot-he-interface '(1 1 1 1 1 0 0 0))
   '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 161))
 
+(test "jot-ao-interface 1"
+  (jot-ao-interface '(0))
+  '((lambda (y) (lambda (z) z)) . 13))
+
+(test "jot-ao-interface 2"
+  (jot-ao-interface '(1))
+  '((lambda (x) (lambda (y) (x y))) . 1))
+
+;; (test "jot-ao-interface 3"
+;;   (jot-ao-interface '(1 1))
+;;   '((lambda (x) (lambda (y) (lambda (g0) ((x y) g0)))) . 8))
+
+;; (test "jot-ao-interface 4"
+;;   (jot-ao-interface '(1 0))
+;;   '((lambda (g2) (lambda (z) z)) . 34))
+
+(test "jot-ao-interface 5"
+  (jot-ao-interface '(0 1))
+  '((lambda (x) (lambda (y) (lambda (z) z))) . 15))
+
+(test "jot-ao-interface 6"
+  (jot-ao-interface '(0 0))
+  '((lambda (x) (lambda (y) x)) . 16))
+
+(test "jot-ao-interface 7"
+  (jot-ao-interface '(1 1 1 0 0))
+  '((lambda (x) (lambda (y) x)) . 78))
+
+(test "jot-ao-interface 8"
+  (jot-ao-interface '(1 1 1 1 1 0 0 0))
+  '((lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))) . 161))

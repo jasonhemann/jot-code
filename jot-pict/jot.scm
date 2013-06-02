@@ -151,6 +151,39 @@
                 (v-rand <- (bv rand))
                 (return-state `(,v-rator ,v-rand)))]))])))
 
+(define ao
+  (lambda (exp)
+    (pmatch exp
+      [,exp (guard (symbol? exp)) (return-state exp)]
+      [(lambda (,x) ,body) (guard (symbol? x))
+       (do bind-state
+         (v-body <- (ao body))
+         (return-state `(lambda (,x) ,v-body)))]
+      [(,rator ,rand)
+       (do bind-state
+         (v-rator <- (ao rator))
+         (pmatch v-rator
+           [,v-rator (guard (symbol? v-rator))
+             (do bind-state
+               (v-rand <- (ao rand))
+               (return-state `(,v-rator ,v-rand)))]
+           [(lambda (,x) ,body) (guard (symbol? x))
+            (do bind-state
+              (v-rand <- (ao rand))
+              (s <- get-state)
+              (if (< s MAX_BETA)
+                  (do bind-state                      
+                    (put-state (add1 s))
+                    (rec <- (beta v-rand x body))
+                    (ao rec))
+                  (do bind-state
+                    (put-state MAX_BETA)
+                    (return-state '_))))]
+           [(,v-rat-rat ,v-rat-ran)
+            (do bind-state
+                (v-rand <- (ao rand))
+                (return-state `(,v-rator ,v-rand)))]))])))
+
 (define he
   (lambda (exp)
     (pmatch exp
@@ -298,6 +331,24 @@
 (define jot-he-interface
   (lambda (bls)
     ((jot-he bls '(lambda (x) x)) 0)))
+
+;; applicative order reduction to normal form
+(define jot-ao
+  (lambda (bls v)
+    (pmatch bls
+      (() (return-state v))
+      ((1 . ,dbls) (do bind-state
+                     (n-v <- (ao `(lambda (x) (lambda (y) (,v (x y))))))
+                     (jot-ao dbls n-v)))
+      ((0 . ,dbls) (do bind-state
+                       (n-v <- (ao `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                                     (lambda (x) (lambda (y) x)))))
+                       (jot-ao dbls n-v))))))
+
+;; applicative order reduction to normal form 
+(define jot-ao-interface
+  (lambda (bls)
+    ((jot-ao bls '(lambda (x) x)) 0)))
 
 
 (load "jot-tests.scm")
