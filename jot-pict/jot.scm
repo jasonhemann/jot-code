@@ -318,6 +318,39 @@
               (nrand <- (ha rand))
               (return-state `(,nrat ,nrand)))]))])))
 
+(define hn
+  (lambda (exp)
+    (pmatch exp
+      [,exp (guard (symbol? exp)) (return-state exp)]
+      [(lambda (,x) ,body) (guard (symbol? x))
+       (do bind-state
+         (nbody <- (hn body))
+         (return-state `(lambda (,x) ,nbody)))]
+      [(,rator ,rand)
+       (do bind-state
+         (v-rator <- (he rator))
+         (pmatch v-rator
+	   [,v-rator (guard (symbol? v-rator))
+                     (do bind-state
+                       (nrand <- (hn rand))
+                       (return-state `(,v-rator ,nrand)))]
+	   [(lambda (,x) ,body) (guard (symbol? x))
+            (do bind-state
+              (s <- get-state)
+              (if (< s MAX_BETA)
+                  (do bind-state
+                    (put-state (add1 s))
+                    (rec <- (beta rand x body))
+                    (hn rec))
+                  (do bind-state
+                    (put-state MAX_BETA)
+                    (return-state '_))))]
+	   [(,v-rat-rat ,v-rat-ran)
+            (do bind-state
+              (nrat <- (hn v-rator))
+              (nrand <- (hn rand))
+              (return-state `(,nrat ,nrand)))]))])))
+
 ;; no to nf
 (define jot
   (lambda (bls v)
@@ -401,6 +434,25 @@
 (define jot-ha-interface
   (lambda (bls)
     ((jot-ha bls '(lambda (x) x)) 0)))
+
+
+;; hybrid normal order reduction to normal form
+(define jot-hn
+  (lambda (bls v)
+    (pmatch bls
+      (() (return-state v))
+      ((1 . ,dbls) (do bind-state
+                     (n-v <- (hn `(lambda (x) (lambda (y) (,v (x y))))))
+                     (jot-hn dbls n-v)))
+      ((0 . ,dbls) (do bind-state
+                       (n-v <- (hn `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                                     (lambda (x) (lambda (y) x)))))
+                       (jot-hn dbls n-v))))))
+
+;; hybrid normal order reduction to normal form 
+(define jot-hn-interface
+  (lambda (bls)
+    ((jot-hn bls '(lambda (x) x)) 0)))
 
 (load "jot-tests.scm")
 
