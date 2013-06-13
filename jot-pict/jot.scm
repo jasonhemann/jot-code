@@ -216,11 +216,13 @@
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
-      ((1 . ,dbls) (jot-bv dbls `(lambda (x) (lambda (y) (,v (x y))))))
-      ((0 . ,dbls) (do bind-state
-                       (n-v <- (bv `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-                                     (lambda (x) (lambda (y) x)))))
-                       (jot-bv dbls n-v))))))
+      ((1 . ,dbls)
+       (jot-bv dbls `(lambda (x) (lambda (y) (,v (x y))))))
+      ((0 . ,dbls)
+       (do bind-state
+           (n-v <- (bv `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                         (lambda (x) (lambda (y) x)))))
+         (jot-bv dbls n-v))))))
 
 ;; bv to wnf
 (define jot-bv-interface
@@ -455,4 +457,5 @@
     ((jot-hn bls '(lambda (x) x)) 0)))
 
 (load "jot-tests.scm")
+
 
