@@ -6,12 +6,12 @@
 (print-gensym #f)
 
 ;; State monad
-(define return-state
+(define return
   (lambda (a)
     (lambda (s)
       `(,a . ,s))))
  
-(define bind-state
+(define bind
   (lambda (ma f)
     (lambda (s)
       (let ([vs^ (ma s)])
@@ -19,10 +19,10 @@
               [s^ (cdr vs^)])
           ((f v) s^))))))
  
-(define get-state
+(define get
   (lambda (s) `(,s . ,s)))
  
-(define put-state
+(define put
   (lambda (new-s)
     (lambda (s)
       `(_ . ,new-s))))
@@ -54,172 +54,172 @@
 (define beta
   (lambda (M x e)
     (pmatch e
-      (,e (guard (symbol? e) (eq? e x)) (return-state M))
-      (,e (guard (symbol? e) (not (eq? e x))) (return-state e))
-      ((lambda (,y) ,body) (guard (eq? x y)) (return-state `(lambda (,y) ,body)))
+      (,e (guard (symbol? e) (eq? e x)) (return M))
+      (,e (guard (symbol? e) (not (eq? e x))) (return e))
+      ((lambda (,y) ,body) (guard (eq? x y)) (return `(lambda (,y) ,body)))
       ((lambda (,y) ,body) (guard (not (eq? x y)) (not-free? x body))
-       (do bind-state
-           (s <- get-state)
+       (do bind
+           (s <- get)
          (if (< s MAX_BETA)
-             (do bind-state
-               (put-state (add1 s))
+             (do bind
+               (put (add1 s))
                (rec <- (beta M x body))
-               (return-state `(lambda (,y) ,rec)))
-             (do bind-state
-               (put-state MAX_BETA)
-               (return-state '_)))))
+               (return `(lambda (,y) ,rec)))
+             (do bind
+               (put MAX_BETA)
+               (return '_)))))
       ((lambda (,y) ,body) (guard (not (eq? x y)) (free? x body) (not-free? y M))
-       (do bind-state
-           (s <- get-state)
+       (do bind
+           (s <- get)
            (if (< s MAX_BETA)
-             (do bind-state
-               (put-state (add1 s))
+             (do bind
+               (put (add1 s))
                (rec <- (beta M x body))
-               (return-state `(lambda (,y) ,rec)))
-             (do bind-state
-               (put-state MAX_BETA)
-               (return-state '_)))))
+               (return `(lambda (,y) ,rec)))
+             (do bind
+               (put MAX_BETA)
+               (return '_)))))
       ((lambda (,y) ,body) (guard (not (eq? x y)) (free? x body) (free? y M))
        (let ((g (gensym))) ;; g =/= x
                            ;; g \not\in fv e
                            ;; g \not\in fv M
-         (do bind-state
-           (s1 <- get-state)
+         (do bind
+           (s1 <- get)
            (if (< s1 MAX_BETA)
-               (do bind-state
-                 (put-state (add1 s1))
+               (do bind
+                 (put (add1 s1))
                  (rec1 <- (beta g y body))
-                 (s2 <- get-state)
+                 (s2 <- get)
                  (if (< s2 MAX_BETA)
-                     (do bind-state                       
-                       (put-state (add1 s2))
+                     (do bind                       
+                       (put (add1 s2))
                        (rec2 <- (beta M x rec1))
-                       (return-state `(lambda (,g) ,rec2)))
-                     (do bind-state
-                       (put-state MAX_BETA)
-                       (return-state '_))))
-               (do bind-state
-                 (put-state MAX_BETA)
-                 (return-state '_))))))
+                       (return `(lambda (,g) ,rec2)))
+                     (do bind
+                       (put MAX_BETA)
+                       (return '_))))
+               (do bind
+                 (put MAX_BETA)
+                 (return '_))))))
       ((,rator ,rand)
-       (do bind-state
-         (s1 <- get-state)
+       (do bind
+         (s1 <- get)
          (if (< s1 MAX_BETA)
-             (do bind-state                 
-               (put-state (add1 s1))
+             (do bind                 
+               (put (add1 s1))
                (brat <- (beta M x rator))
-               (s2 <- get-state)
+               (s2 <- get)
                (if (< s2 MAX_BETA)
-                   (do bind-state                       
-                     (put-state (add1 s2))
+                   (do bind                       
+                     (put (add1 s2))
                      (brand <- (beta M x rand))
-                     (return-state `(,brat ,brand)))
-                   (do bind-state
-                     (put-state MAX_BETA)
-                     (return-state '_))))
-             (do bind-state
-               (put-state MAX_BETA)
-               (return-state '_))))))))
+                     (return `(,brat ,brand)))
+                   (do bind
+                     (put MAX_BETA)
+                     (return '_))))
+             (do bind
+               (put MAX_BETA)
+               (return '_))))))))
 
 (define bv-wnf
   (lambda (exp)
     (pmatch exp
-      [,exp (guard (symbol? exp)) (return-state exp)]
-      [(lambda (,x) ,body) (guard (symbol? x)) (return-state exp)]
+      [,exp (guard (symbol? exp)) (return exp)]
+      [(lambda (,x) ,body) (guard (symbol? x)) (return exp)]
       [(,rator ,rand)
-       (do bind-state
+       (do bind
          (v-rator <- (bv-wnf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
-             (do bind-state
+             (do bind
                (v-rand <- (bv-wnf rand))
-               (return-state `(,v-rator ,v-rand)))]
+               (return `(,v-rator ,v-rand)))]
            [(lambda (,x) ,body) (guard (symbol? x))
-            (do bind-state
+            (do bind
               (v-rand <- (bv-wnf rand))
-              (s <- get-state)
+              (s <- get)
               (if (< s MAX_BETA)
-                  (do bind-state                      
-                    (put-state (add1 s))
+                  (do bind                      
+                    (put (add1 s))
                     (rec <- (beta v-rand x body))
                     (bv-wnf rec))
-                  (do bind-state
-                    (put-state MAX_BETA)
-                    (return-state '_))))]
+                  (do bind
+                    (put MAX_BETA)
+                    (return '_))))]
            [(,v-rat-rat ,v-rat-ran)
-            (do bind-state
+            (do bind
                 (v-rand <- (bv-wnf rand))
-                (return-state `(,v-rator ,v-rand)))]))])))
+                (return `(,v-rator ,v-rand)))]))])))
 
 (define ao-nf
   (lambda (exp)
     (pmatch exp
-      [,exp (guard (symbol? exp)) (return-state exp)]
+      [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do bind-state
+       (do bind
          (v-body <- (ao-nf body))
-         (return-state `(lambda (,x) ,v-body)))]
+         (return `(lambda (,x) ,v-body)))]
       [(,rator ,rand)
-       (do bind-state
+       (do bind
          (v-rator <- (ao-nf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
-             (do bind-state
+             (do bind
                (v-rand <- (ao-nf rand))
-               (return-state `(,v-rator ,v-rand)))]
+               (return `(,v-rator ,v-rand)))]
            [(lambda (,x) ,body) (guard (symbol? x))
-            (do bind-state
+            (do bind
               (v-rand <- (ao-nf rand))
-              (s <- get-state)
+              (s <- get)
               (if (< s MAX_BETA)
-                  (do bind-state                      
-                    (put-state (add1 s))
+                  (do bind                      
+                    (put (add1 s))
                     (rec <- (beta v-rand x body))
                     (ao-nf rec))
-                  (do bind-state
-                    (put-state MAX_BETA)
-                    (return-state '_))))]
+                  (do bind
+                    (put MAX_BETA)
+                    (return '_))))]
            [(,v-rat-rat ,v-rat-ran)
-            (do bind-state
+            (do bind
                 (v-rand <- (ao-nf rand))
-                (return-state `(,v-rator ,v-rand)))]))])))
+                (return `(,v-rator ,v-rand)))]))])))
 
 (define he-hnf
   (lambda (exp)
     (pmatch exp
-      [,exp (guard (symbol? exp)) (return-state exp)]
+      [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do bind-state
+       (do bind
          (v-body <- (he-hnf body))
-         (return-state `(lambda (,x) ,v-body)))]
+         (return `(lambda (,x) ,v-body)))]
       [(,rator ,rand)
-       (do bind-state
+       (do bind
          (v-rator <- (he-hnf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
-            (return-state `(,v-rator ,rand))]
+            (return `(,v-rator ,rand))]
            [(lambda (,x) ,body) (guard (symbol? x))
-            (do bind-state
-              (s <- get-state)
+            (do bind
+              (s <- get)
               (if (< s MAX_BETA)
-                  (do bind-state
-                    (put-state (add1 s))
+                  (do bind
+                    (put (add1 s))
                     (rec <- (beta rand x body))
                     (he-hnf rec))
-                  (do bind-state
-                    (put-state MAX_BETA)
-                    (return-state '_))))]
+                  (do bind
+                    (put MAX_BETA)
+                    (return '_))))]
            [(,rat ,ran)
-            (return-state `(,v-rator ,rand))]))])))
+            (return `(,v-rator ,rand))]))])))
 
 (define jot-bv-wnf
   (lambda (bls v)
     (pmatch bls
-      (() (return-state v))
+      (() (return v))
       ((1 . ,dbls)
        (jot-bv-wnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
       ((0 . ,dbls)
-       (do bind-state
+       (do bind
            (n-v <- (bv-wnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                          (lambda (x) (lambda (y) x)))))
          (jot-bv-wnf dbls n-v))))))
@@ -232,136 +232,136 @@
 (define bn-whnf
   (lambda (exp)
     (pmatch exp
-      [,exp (guard (symbol? exp)) (return-state exp)]
-      [(lambda (,x) ,body) (guard (symbol? x)) (return-state exp)]
+      [,exp (guard (symbol? exp)) (return exp)]
+      [(lambda (,x) ,body) (guard (symbol? x)) (return exp)]
       [(,rator ,rand)
-       (do bind-state
+       (do bind
          (v-rator <- (bn-whnf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
-	    (return-state `(,v-rator ,rand))]
+	    (return `(,v-rator ,rand))]
 	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do bind-state
-              (s <- get-state)
+            (do bind
+              (s <- get)
               (if (< s MAX_BETA)
-                  (do bind-state
-                    (put-state (add1 s))
+                  (do bind
+                    (put (add1 s))
                     (rec <- (beta rand x body))
                     (bn-whnf rec))
-                  (do bind-state
-                    (put-state MAX_BETA)
-                    (return-state '_))))]
-	   [(,v-rat-rat ,v-rat-ran) (return-state `(,v-rator ,rand))]))])))
+                  (do bind
+                    (put MAX_BETA)
+                    (return '_))))]
+	   [(,v-rat-rat ,v-rat-ran) (return `(,v-rator ,rand))]))])))
 
 (define no-nf
   (lambda (exp)
     (pmatch exp
-      [,exp (guard (symbol? exp)) (return-state exp)]
+      [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do bind-state
+       (do bind
          (nbody <- (no-nf body))
-         (return-state `(lambda (,x) ,nbody)))]
+         (return `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
-       (do bind-state
+       (do bind
          (v-rator <- (bn-whnf rator))
          (pmatch v-rator
 	   [,v-rator (guard (symbol? v-rator))
-                     (do bind-state
+                     (do bind
                        (nrand <- (no-nf rand))
-                       (return-state `(,v-rator ,nrand)))]
+                       (return `(,v-rator ,nrand)))]
 	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do bind-state
-              (s <- get-state)
+            (do bind
+              (s <- get)
               (if (< s MAX_BETA)
-                  (do bind-state
-                    (put-state (add1 s))
+                  (do bind
+                    (put (add1 s))
                     (rec <- (beta rand x body))
                     (no-nf rec))
-                  (do bind-state
-                    (put-state MAX_BETA)
-                    (return-state '_))))]
+                  (do bind
+                    (put MAX_BETA)
+                    (return '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
-            (do bind-state
+            (do bind
               (nrat <- (no-nf v-rator))
               (nrand <- (no-nf rand))
-              (return-state `(,nrat ,nrand)))]))])))
+              (return `(,nrat ,nrand)))]))])))
 
 (define ha-nf
   (lambda (exp)
     (pmatch exp
-      [,exp (guard (symbol? exp)) (return-state exp)]
+      [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do bind-state
+       (do bind
          (nbody <- (ha-nf body))
-         (return-state `(lambda (,x) ,nbody)))]
+         (return `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
-       (do bind-state
+       (do bind
          (v-rator <- (bv-wnf rator))
          (pmatch v-rator
 	   [,v-rator (guard (symbol? v-rator))
-            (do bind-state  
+            (do bind  
               (nrand <- (ha-nf rand))                       
-              (return-state `(,v-rator ,nrand)))]
+              (return `(,v-rator ,nrand)))]
 	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do bind-state
+            (do bind
               (nrand <- (ha-nf rand))  
-              (s <- get-state)
+              (s <- get)
               (if (< s MAX_BETA)
-                  (do bind-state
-                    (put-state (add1 s))
+                  (do bind
+                    (put (add1 s))
                     (rec <- (beta nrand x body))
                     (ha-nf rec))
-                  (do bind-state
-                    (put-state MAX_BETA)
-                    (return-state '_))))]
+                  (do bind
+                    (put MAX_BETA)
+                    (return '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
-            (do bind-state
+            (do bind
               (nrat <- (ha-nf v-rator))
               (nrand <- (ha-nf rand))
-              (return-state `(,nrat ,nrand)))]))])))
+              (return `(,nrat ,nrand)))]))])))
 
 (define hn-nf
   (lambda (exp)
     (pmatch exp
-      [,exp (guard (symbol? exp)) (return-state exp)]
+      [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do bind-state
+       (do bind
          (nbody <- (hn-nf body))
-         (return-state `(lambda (,x) ,nbody)))]
+         (return `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
-       (do bind-state
+       (do bind
          (v-rator <- (he-hnf rator))
          (pmatch v-rator
 	   [,v-rator (guard (symbol? v-rator))
-                     (do bind-state
+                     (do bind
                        (nrand <- (hn-nf rand))
-                       (return-state `(,v-rator ,nrand)))]
+                       (return `(,v-rator ,nrand)))]
 	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do bind-state
-              (s <- get-state)
+            (do bind
+              (s <- get)
               (if (< s MAX_BETA)
-                  (do bind-state
-                    (put-state (add1 s))
+                  (do bind
+                    (put (add1 s))
                     (rec <- (beta rand x body))
                     (hn-nf rec))
-                  (do bind-state
-                    (put-state MAX_BETA)
-                    (return-state '_))))]
+                  (do bind
+                    (put MAX_BETA)
+                    (return '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
-            (do bind-state
+            (do bind
               (nrat <- (hn-nf v-rator))
               (nrand <- (hn-nf rand))
-              (return-state `(,nrat ,nrand)))]))])))
+              (return `(,nrat ,nrand)))]))])))
 
 ;; no to nf
 (define jot-no-nf
   (lambda (bls v)
     (pmatch bls
-      (() (return-state v))
-      ((1 . ,dbls) (do bind-state
+      (() (return v))
+      ((1 . ,dbls) (do bind
                      (n-v <- (no-nf `(lambda (x) (lambda (y) (,v (x y))))))
                      (jot-no-nf dbls n-v)))
-      ((0 . ,dbls) (do bind-state
+      ((0 . ,dbls) (do bind
                      (n-v <- (no-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                        (lambda (x) (lambda (y) x)))))
 		     (jot-no-nf dbls n-v))))))
@@ -374,9 +374,9 @@
 (define jot-bn-whnf
   (lambda (bls v)
     (pmatch bls
-      (() (return-state v))
+      (() (return v))
       ((1 . ,dbls) (jot-bn-whnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
-      ((0 . ,dbls) (do bind-state
+      ((0 . ,dbls) (do bind
                        (n-v <- (bn-whnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
                        (jot-bn-whnf dbls n-v))))))
@@ -389,9 +389,9 @@
 (define jot-he-hnf
   (lambda (bls v)
     (pmatch bls
-      (() (return-state v))
+      (() (return v))
       ((1 . ,dbls) (jot-he-hnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
-      ((0 . ,dbls) (do bind-state
+      ((0 . ,dbls) (do bind
                        (n-v <- (he-hnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
                        (jot-he-hnf dbls n-v))))))
@@ -405,11 +405,11 @@
 (define jot-ao-nf
   (lambda (bls v)
     (pmatch bls
-      (() (return-state v))
-      ((1 . ,dbls) (do bind-state
+      (() (return v))
+      ((1 . ,dbls) (do bind
                      (n-v <- (ao-nf `(lambda (x) (lambda (y) (,v (x y))))))
                      (jot-ao-nf dbls n-v)))
-      ((0 . ,dbls) (do bind-state
+      ((0 . ,dbls) (do bind
                        (n-v <- (ao-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
                        (jot-ao-nf dbls n-v))))))
@@ -423,11 +423,11 @@
 (define jot-ha-nf
   (lambda (bls v)
     (pmatch bls
-      (() (return-state v))
-      ((1 . ,dbls) (do bind-state
+      (() (return v))
+      ((1 . ,dbls) (do bind
                      (n-v <- (ha-nf `(lambda (x) (lambda (y) (,v (x y))))))
                      (jot-ha-nf dbls n-v)))
-      ((0 . ,dbls) (do bind-state
+      ((0 . ,dbls) (do bind
                        (n-v <- (ha-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
                        (jot-ha-nf dbls n-v))))))
@@ -441,11 +441,11 @@
 (define jot-hn-nf
   (lambda (bls v)
     (pmatch bls
-      (() (return-state v))
-      ((1 . ,dbls) (do bind-state
+      (() (return v))
+      ((1 . ,dbls) (do bind
                      (n-v <- (hn-nf `(lambda (x) (lambda (y) (,v (x y))))))
                      (jot-hn-nf dbls n-v)))
-      ((0 . ,dbls) (do bind-state
+      ((0 . ,dbls) (do bind
                        (n-v <- (hn-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
                        (jot-hn-nf dbls n-v))))))
