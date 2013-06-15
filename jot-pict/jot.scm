@@ -121,80 +121,80 @@
                (put-state MAX_BETA)
                (return-state '_))))))))
 
-(define bv
+(define bv-wnf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return-state exp)]
       [(lambda (,x) ,body) (guard (symbol? x)) (return-state exp)]
       [(,rator ,rand)
        (do bind-state
-         (v-rator <- (bv rator))
+         (v-rator <- (bv-wnf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
              (do bind-state
-               (v-rand <- (bv rand))
+               (v-rand <- (bv-wnf rand))
                (return-state `(,v-rator ,v-rand)))]
            [(lambda (,x) ,body) (guard (symbol? x))
             (do bind-state
-              (v-rand <- (bv rand))
+              (v-rand <- (bv-wnf rand))
               (s <- get-state)
               (if (< s MAX_BETA)
                   (do bind-state                      
                     (put-state (add1 s))
                     (rec <- (beta v-rand x body))
-                    (bv rec))
+                    (bv-wnf rec))
                   (do bind-state
                     (put-state MAX_BETA)
                     (return-state '_))))]
            [(,v-rat-rat ,v-rat-ran)
             (do bind-state
-                (v-rand <- (bv rand))
+                (v-rand <- (bv-wnf rand))
                 (return-state `(,v-rator ,v-rand)))]))])))
 
-(define ao
+(define ao-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return-state exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
        (do bind-state
-         (v-body <- (ao body))
+         (v-body <- (ao-nf body))
          (return-state `(lambda (,x) ,v-body)))]
       [(,rator ,rand)
        (do bind-state
-         (v-rator <- (ao rator))
+         (v-rator <- (ao-nf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
              (do bind-state
-               (v-rand <- (ao rand))
+               (v-rand <- (ao-nf rand))
                (return-state `(,v-rator ,v-rand)))]
            [(lambda (,x) ,body) (guard (symbol? x))
             (do bind-state
-              (v-rand <- (ao rand))
+              (v-rand <- (ao-nf rand))
               (s <- get-state)
               (if (< s MAX_BETA)
                   (do bind-state                      
                     (put-state (add1 s))
                     (rec <- (beta v-rand x body))
-                    (ao rec))
+                    (ao-nf rec))
                   (do bind-state
                     (put-state MAX_BETA)
                     (return-state '_))))]
            [(,v-rat-rat ,v-rat-ran)
             (do bind-state
-                (v-rand <- (ao rand))
+                (v-rand <- (ao-nf rand))
                 (return-state `(,v-rator ,v-rand)))]))])))
 
-(define he
+(define he-hnf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return-state exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
        (do bind-state
-         (v-body <- (he body))
+         (v-body <- (he-hnf body))
          (return-state `(lambda (,x) ,v-body)))]
       [(,rator ,rand)
        (do bind-state
-         (v-rator <- (he rator))
+         (v-rator <- (he-hnf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
             (return-state `(,v-rator ,rand))]
@@ -205,38 +205,38 @@
                   (do bind-state
                     (put-state (add1 s))
                     (rec <- (beta rand x body))
-                    (he rec))
+                    (he-hnf rec))
                   (do bind-state
                     (put-state MAX_BETA)
                     (return-state '_))))]
            [(,rat ,ran)
             (return-state `(,v-rator ,rand))]))])))
 
-(define jot-bv
+(define jot-bv-wnf
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
       ((1 . ,dbls)
-       (jot-bv dbls `(lambda (x) (lambda (y) (,v (x y))))))
+       (jot-bv-wnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
       ((0 . ,dbls)
        (do bind-state
-           (n-v <- (bv `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+           (n-v <- (bv-wnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                          (lambda (x) (lambda (y) x)))))
-         (jot-bv dbls n-v))))))
+         (jot-bv-wnf dbls n-v))))))
 
 ;; bv to wnf
-(define jot-bv-interface
+(define jot-bv-wnf-interface
   (lambda (bls)
-    ((jot-bv bls '(lambda (x) x)) 0)))
+    ((jot-bv-wnf bls '(lambda (x) x)) 0)))
 
-(define bn
+(define bn-whnf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return-state exp)]
       [(lambda (,x) ,body) (guard (symbol? x)) (return-state exp)]
       [(,rator ,rand)
        (do bind-state
-         (v-rator <- (bn rator))
+         (v-rator <- (bn-whnf rator))
          (pmatch v-rator
            [,v-rator (guard (symbol? v-rator))
 	    (return-state `(,v-rator ,rand))]
@@ -247,27 +247,27 @@
                   (do bind-state
                     (put-state (add1 s))
                     (rec <- (beta rand x body))
-                    (bn rec))
+                    (bn-whnf rec))
                   (do bind-state
                     (put-state MAX_BETA)
                     (return-state '_))))]
 	   [(,v-rat-rat ,v-rat-ran) (return-state `(,v-rator ,rand))]))])))
 
-(define norm
+(define no-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return-state exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
        (do bind-state
-         (nbody <- (norm body))
+         (nbody <- (no-nf body))
          (return-state `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
        (do bind-state
-         (v-rator <- (bn rator))
+         (v-rator <- (bn-whnf rator))
          (pmatch v-rator
 	   [,v-rator (guard (symbol? v-rator))
                      (do bind-state
-                       (nrand <- (norm rand))
+                       (nrand <- (no-nf rand))
                        (return-state `(,v-rator ,nrand)))]
 	   [(lambda (,x) ,body) (guard (symbol? x))
             (do bind-state
@@ -276,65 +276,65 @@
                   (do bind-state
                     (put-state (add1 s))
                     (rec <- (beta rand x body))
-                    (norm rec))
+                    (no-nf rec))
                   (do bind-state
                     (put-state MAX_BETA)
                     (return-state '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
             (do bind-state
-              (nrat <- (norm v-rator))
-              (nrand <- (norm rand))
+              (nrat <- (no-nf v-rator))
+              (nrand <- (no-nf rand))
               (return-state `(,nrat ,nrand)))]))])))
 
-(define ha
+(define ha-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return-state exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
        (do bind-state
-         (nbody <- (ha body))
+         (nbody <- (ha-nf body))
          (return-state `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
        (do bind-state
-         (v-rator <- (bv rator))
+         (v-rator <- (bv-wnf rator))
          (pmatch v-rator
 	   [,v-rator (guard (symbol? v-rator))
             (do bind-state  
-              (nrand <- (ha rand))                       
+              (nrand <- (ha-nf rand))                       
               (return-state `(,v-rator ,nrand)))]
 	   [(lambda (,x) ,body) (guard (symbol? x))
             (do bind-state
-              (nrand <- (ha rand))  
+              (nrand <- (ha-nf rand))  
               (s <- get-state)
               (if (< s MAX_BETA)
                   (do bind-state
                     (put-state (add1 s))
                     (rec <- (beta nrand x body))
-                    (ha rec))
+                    (ha-nf rec))
                   (do bind-state
                     (put-state MAX_BETA)
                     (return-state '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
             (do bind-state
-              (nrat <- (ha v-rator))
-              (nrand <- (ha rand))
+              (nrat <- (ha-nf v-rator))
+              (nrand <- (ha-nf rand))
               (return-state `(,nrat ,nrand)))]))])))
 
-(define hn
+(define hn-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return-state exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
        (do bind-state
-         (nbody <- (hn body))
+         (nbody <- (hn-nf body))
          (return-state `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
        (do bind-state
-         (v-rator <- (he rator))
+         (v-rator <- (he-hnf rator))
          (pmatch v-rator
 	   [,v-rator (guard (symbol? v-rator))
                      (do bind-state
-                       (nrand <- (hn rand))
+                       (nrand <- (hn-nf rand))
                        (return-state `(,v-rator ,nrand)))]
 	   [(lambda (,x) ,body) (guard (symbol? x))
             (do bind-state
@@ -343,118 +343,117 @@
                   (do bind-state
                     (put-state (add1 s))
                     (rec <- (beta rand x body))
-                    (hn rec))
+                    (hn-nf rec))
                   (do bind-state
                     (put-state MAX_BETA)
                     (return-state '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
             (do bind-state
-              (nrat <- (hn v-rator))
-              (nrand <- (hn rand))
+              (nrat <- (hn-nf v-rator))
+              (nrand <- (hn-nf rand))
               (return-state `(,nrat ,nrand)))]))])))
 
 ;; no to nf
-(define jot
+(define jot-no-nf
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
       ((1 . ,dbls) (do bind-state
-                     (n-v <- (norm `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot dbls n-v)))
+                     (n-v <- (no-nf `(lambda (x) (lambda (y) (,v (x y))))))
+                     (jot-no-nf dbls n-v)))
       ((0 . ,dbls) (do bind-state
-                     (n-v <- (norm `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                     (n-v <- (no-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                        (lambda (x) (lambda (y) x)))))
-		     (jot dbls n-v))))))
+		     (jot-no-nf dbls n-v))))))
 
-(define jot-interface
+(define jot-no-nf-interface
   (lambda (bls)
-    ((jot bls '(lambda (x) x)) 0)))
+    ((jot-no-nf bls '(lambda (x) x)) 0)))
 
 ;; no to whnf
-(define jot-bn
+(define jot-bn-whnf
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
-      ((1 . ,dbls) (jot-bn dbls `(lambda (x) (lambda (y) (,v (x y))))))
+      ((1 . ,dbls) (jot-bn-whnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
       ((0 . ,dbls) (do bind-state
-                       (n-v <- (bn `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                       (n-v <- (bn-whnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
-                       (jot-bn dbls n-v))))))
+                       (jot-bn-whnf dbls n-v))))))
 
-(define jot-bn-interface
+(define jot-bn-whnf-interface
   (lambda (bls)
-    ((jot-bn bls '(lambda (x) x)) 0)))
+    ((jot-bn-whnf bls '(lambda (x) x)) 0)))
 
 ;; head spine to head normal form
-(define jot-he
+(define jot-he-hnf
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
-      ((1 . ,dbls) (jot-he dbls `(lambda (x) (lambda (y) (,v (x y))))))
+      ((1 . ,dbls) (jot-he-hnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
       ((0 . ,dbls) (do bind-state
-                       (n-v <- (he `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                       (n-v <- (he-hnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
-                       (jot-he dbls n-v))))))
+                       (jot-he-hnf dbls n-v))))))
 
 ;; head spine to head normal form
-(define jot-he-interface
+(define jot-he-hnf-interface
   (lambda (bls)
-    ((jot-he bls '(lambda (x) x)) 0)))
+    ((jot-he-hnf bls '(lambda (x) x)) 0)))
 
 ;; applicative order reduction to normal form
-(define jot-ao
+(define jot-ao-nf
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
       ((1 . ,dbls) (do bind-state
-                     (n-v <- (ao `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot-ao dbls n-v)))
+                     (n-v <- (ao-nf `(lambda (x) (lambda (y) (,v (x y))))))
+                     (jot-ao-nf dbls n-v)))
       ((0 . ,dbls) (do bind-state
-                       (n-v <- (ao `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                       (n-v <- (ao-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
-                       (jot-ao dbls n-v))))))
+                       (jot-ao-nf dbls n-v))))))
 
 ;; applicative order reduction to normal form 
-(define jot-ao-interface
+(define jot-ao-nf-interface
   (lambda (bls)
-    ((jot-ao bls '(lambda (x) x)) 0)))
+    ((jot-ao-nf bls '(lambda (x) x)) 0)))
 
 ;; hybrid applicative order reduction to normal form
-(define jot-ha
+(define jot-ha-nf
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
       ((1 . ,dbls) (do bind-state
-                     (n-v <- (ha `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot-ha dbls n-v)))
+                     (n-v <- (ha-nf `(lambda (x) (lambda (y) (,v (x y))))))
+                     (jot-ha-nf dbls n-v)))
       ((0 . ,dbls) (do bind-state
-                       (n-v <- (ha `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                       (n-v <- (ha-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
-                       (jot-ha dbls n-v))))))
+                       (jot-ha-nf dbls n-v))))))
 
 ;; hybrid applicative order reduction to normal form 
-(define jot-ha-interface
+(define jot-ha-nf-interface
   (lambda (bls)
-    ((jot-ha bls '(lambda (x) x)) 0)))
-
+    ((jot-ha-nf bls '(lambda (x) x)) 0)))
 
 ;; hybrid normal order reduction to normal form
-(define jot-hn
+(define jot-hn-nf
   (lambda (bls v)
     (pmatch bls
       (() (return-state v))
       ((1 . ,dbls) (do bind-state
-                     (n-v <- (hn `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot-hn dbls n-v)))
+                     (n-v <- (hn-nf `(lambda (x) (lambda (y) (,v (x y))))))
+                     (jot-hn-nf dbls n-v)))
       ((0 . ,dbls) (do bind-state
-                       (n-v <- (hn `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                       (n-v <- (hn-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
-                       (jot-hn dbls n-v))))))
+                       (jot-hn-nf dbls n-v))))))
 
 ;; hybrid normal order reduction to normal form 
-(define jot-hn-interface
+(define jot-hn-nf-interface
   (lambda (bls)
-    ((jot-hn bls '(lambda (x) x)) 0)))
+    ((jot-hn-nf bls '(lambda (x) x)) 0)))
 
 (load "jot-tests.scm")
 
