@@ -202,136 +202,112 @@
       [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x)) (return exp)]
       [(,rator ,rand)
-       (do
-         (v-rator <- (bn-whnf rator))
-         (pmatch v-rator
-           [,v-rator (guard (symbol? v-rator))
-	    (return `(,v-rator ,rand))]
-	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do
-              (s <- get)
-              (if (< s MAX_BETA)
-                  (do
-                    (put (add1 s))
-                    (rec <- (beta rand x body))
-                    (bn-whnf rec))
-                  (do
-                    (put MAX_BETA)
-                    (return '_))))]
-	   [(,v-rat-rat ,v-rat-ran) (return `(,v-rator ,rand))]))])))
+       (do (v-rator <- (bn-whnf rator))
+           (pmatch v-rator
+             [,v-rator (guard (symbol? v-rator))
+              (return `(,v-rator ,rand))]
+             [(lambda (,x) ,body) (guard (symbol? x))
+              (do (s <- get)
+                  (if (< s MAX_BETA)
+                      (do (put (add1 s))
+                          (rec <- (beta rand x body))
+                          (bn-whnf rec))
+                      (do (put MAX_BETA)
+                          (return '_))))]
+	   [(,v-rat-rat ,v-rat-ran)
+            (return `(,v-rator ,rand))]))])))
 
 (define no-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do
-         (nbody <- (no-nf body))
-         (return `(lambda (,x) ,nbody)))]
+       (do (nbody <- (no-nf body))
+           (return `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
-       (do
-         (v-rator <- (bn-whnf rator))
-         (pmatch v-rator
-	   [,v-rator (guard (symbol? v-rator))
-                     (do
-                       (nrand <- (no-nf rand))
-                       (return `(,v-rator ,nrand)))]
-	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do
-              (s <- get)
-              (if (< s MAX_BETA)
-                  (do
-                    (put (add1 s))
-                    (rec <- (beta rand x body))
-                    (no-nf rec))
-                  (do
-                    (put MAX_BETA)
-                    (return '_))))]
-	   [(,v-rat-rat ,v-rat-ran)
-            (do
-              (nrat <- (no-nf v-rator))
-              (nrand <- (no-nf rand))
-              (return `(,nrat ,nrand)))]))])))
+       (do (v-rator <- (bn-whnf rator))
+           (pmatch v-rator
+             [,v-rator (guard (symbol? v-rator))
+                       (do (nrand <- (no-nf rand))
+                           (return `(,v-rator ,nrand)))]
+             [(lambda (,x) ,body) (guard (symbol? x))
+              (do (s <- get)
+                  (if (< s MAX_BETA)
+                      (do (put (add1 s))
+                          (rec <- (beta rand x body))
+                          (no-nf rec))
+                      (do (put MAX_BETA)
+                          (return '_))))]
+             [(,v-rat-rat ,v-rat-ran)
+              (do (nrat <- (no-nf v-rator))
+                  (nrand <- (no-nf rand))
+                  (return `(,nrat ,nrand)))]))])))
 
 (define ha-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do
-         (nbody <- (ha-nf body))
-         (return `(lambda (,x) ,nbody)))]
+       (do (nbody <- (ha-nf body))
+           (return `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
-       (do
-         (v-rator <- (bv-wnf rator))
-         (pmatch v-rator
-	   [,v-rator (guard (symbol? v-rator))
-            (do  
-              (nrand <- (ha-nf rand))                       
-              (return `(,v-rator ,nrand)))]
-	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do
-              (nrand <- (ha-nf rand))  
-              (s <- get)
-              (if (< s MAX_BETA)
-                  (do
-                    (put (add1 s))
-                    (rec <- (beta nrand x body))
-                    (ha-nf rec))
-                  (do
-                    (put MAX_BETA)
-                    (return '_))))]
+       (do (v-rator <- (bv-wnf rator))
+           (pmatch v-rator
+             [,v-rator (guard (symbol? v-rator))
+              (do (nrand <- (ha-nf rand))                       
+                  (return `(,v-rator ,nrand)))]
+             [(lambda (,x) ,body) (guard (symbol? x))
+              (do (nrand <- (ha-nf rand))  
+                  (s <- get)
+                  (if (< s MAX_BETA)
+                      (do (put (add1 s))
+                          (rec <- (beta nrand x body))
+                          (ha-nf rec))
+                      (do (put MAX_BETA)
+                          (return '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
-            (do
-              (nrat <- (ha-nf v-rator))
-              (nrand <- (ha-nf rand))
-              (return `(,nrat ,nrand)))]))])))
+            (do (nrat <- (ha-nf v-rator))
+                (nrand <- (ha-nf rand))
+                (return `(,nrat ,nrand)))]))])))
 
 (define hn-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do
-         (nbody <- (hn-nf body))
-         (return `(lambda (,x) ,nbody)))]
+       (do (nbody <- (hn-nf body))
+           (return `(lambda (,x) ,nbody)))]
       [(,rator ,rand)
-       (do
-         (v-rator <- (he-hnf rator))
-         (pmatch v-rator
-	   [,v-rator (guard (symbol? v-rator))
-                     (do
-                       (nrand <- (hn-nf rand))
-                       (return `(,v-rator ,nrand)))]
-	   [(lambda (,x) ,body) (guard (symbol? x))
-            (do
-              (s <- get)
-              (if (< s MAX_BETA)
-                  (do
-                    (put (add1 s))
-                    (rec <- (beta rand x body))
-                    (hn-nf rec))
-                  (do
-                    (put MAX_BETA)
-                    (return '_))))]
+       (do (v-rator <- (he-hnf rator))
+           (pmatch v-rator
+             [,v-rator (guard (symbol? v-rator))
+              (do (nrand <- (hn-nf rand))
+                  (return `(,v-rator ,nrand)))]
+             [(lambda (,x) ,body) (guard (symbol? x))
+              (do (s <- get)
+                  (if (< s MAX_BETA)
+                      (do (put (add1 s))
+                          (rec <- (beta rand x body))
+                          (hn-nf rec))
+                      (do (put MAX_BETA)
+                          (return '_))))]
 	   [(,v-rat-rat ,v-rat-ran)
-            (do
-              (nrat <- (hn-nf v-rator))
-              (nrand <- (hn-nf rand))
-              (return `(,nrat ,nrand)))]))])))
+            (do (nrat <- (hn-nf v-rator))
+                (nrand <- (hn-nf rand))
+                (return `(,nrat ,nrand)))]))])))
 
 ;; no to nf
 (define jot-no-nf
   (lambda (bls v)
     (pmatch bls
       (() (return v))
-      ((1 . ,dbls) (do
-                     (n-v <- (no-nf `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot-no-nf dbls n-v)))
-      ((0 . ,dbls) (do
-                     (n-v <- (no-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-                                       (lambda (x) (lambda (y) x)))))
-		     (jot-no-nf dbls n-v))))))
+      ((1 . ,dbls)
+       (do (n-v <- (no-nf `(lambda (x) (lambda (y) (,v (x y))))))
+           (jot-no-nf dbls n-v)))
+      ((0 . ,dbls)
+       (do (n-v <- (no-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                            (lambda (x) (lambda (y) x)))))
+           (jot-no-nf dbls n-v))))))
 
 (define jot-no-nf-interface
   (lambda (bls)
@@ -343,8 +319,7 @@
     (pmatch bls
       (() (return v))
       ((1 . ,dbls) (jot-bn-whnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
-      ((0 . ,dbls) (do
-                       (n-v <- (bn-whnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+      ((0 . ,dbls) (do (n-v <- (bn-whnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
                                      (lambda (x) (lambda (y) x)))))
                        (jot-bn-whnf dbls n-v))))))
 
@@ -357,11 +332,12 @@
   (lambda (bls v)
     (pmatch bls
       (() (return v))
-      ((1 . ,dbls) (jot-he-hnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
-      ((0 . ,dbls) (do
-                       (n-v <- (he-hnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-                                     (lambda (x) (lambda (y) x)))))
-                       (jot-he-hnf dbls n-v))))))
+      ((1 . ,dbls)
+       (jot-he-hnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
+      ((0 . ,dbls)
+       (do (n-v <- (he-hnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                             (lambda (x) (lambda (y) x)))))
+           (jot-he-hnf dbls n-v))))))
 
 ;; head spine to head normal form
 (define jot-he-hnf-interface
@@ -373,13 +349,13 @@
   (lambda (bls v)
     (pmatch bls
       (() (return v))
-      ((1 . ,dbls) (do
-                     (n-v <- (ao-nf `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot-ao-nf dbls n-v)))
-      ((0 . ,dbls) (do
-                       (n-v <- (ao-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-                                     (lambda (x) (lambda (y) x)))))
-                       (jot-ao-nf dbls n-v))))))
+      ((1 . ,dbls)
+       (do (n-v <- (ao-nf `(lambda (x) (lambda (y) (,v (x y))))))
+           (jot-ao-nf dbls n-v)))
+      ((0 . ,dbls)
+       (do (n-v <- (ao-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                            (lambda (x) (lambda (y) x)))))
+           (jot-ao-nf dbls n-v))))))
 
 ;; applicative order reduction to normal form 
 (define jot-ao-nf-interface
@@ -391,13 +367,13 @@
   (lambda (bls v)
     (pmatch bls
       (() (return v))
-      ((1 . ,dbls) (do
-                     (n-v <- (ha-nf `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot-ha-nf dbls n-v)))
-      ((0 . ,dbls) (do
-                       (n-v <- (ha-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-                                     (lambda (x) (lambda (y) x)))))
-                       (jot-ha-nf dbls n-v))))))
+      ((1 . ,dbls)
+       (do (n-v <- (ha-nf `(lambda (x) (lambda (y) (,v (x y))))))
+           (jot-ha-nf dbls n-v)))
+      ((0 . ,dbls)
+       (do (n-v <- (ha-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                            (lambda (x) (lambda (y) x)))))
+           (jot-ha-nf dbls n-v))))))
 
 ;; hybrid applicative order reduction to normal form 
 (define jot-ha-nf-interface
@@ -409,13 +385,13 @@
   (lambda (bls v)
     (pmatch bls
       (() (return v))
-      ((1 . ,dbls) (do
-                     (n-v <- (hn-nf `(lambda (x) (lambda (y) (,v (x y))))))
-                     (jot-hn-nf dbls n-v)))
-      ((0 . ,dbls) (do
-                       (n-v <- (hn-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-                                     (lambda (x) (lambda (y) x)))))
-                       (jot-hn-nf dbls n-v))))))
+      ((1 . ,dbls)
+       (do (n-v <- (hn-nf `(lambda (x) (lambda (y) (,v (x y))))))
+           (jot-hn-nf dbls n-v)))
+      ((0 . ,dbls)
+       (do (n-v <- (hn-nf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                            (lambda (x) (lambda (y) x)))))
+           (jot-hn-nf dbls n-v))))))
 
 ;; hybrid normal order reduction to normal form 
 (define jot-hn-nf-interface
