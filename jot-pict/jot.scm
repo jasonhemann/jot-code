@@ -113,90 +113,72 @@
       [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x)) (return exp)]
       [(,rator ,rand)
-       (do
-         (v-rator <- (bv-wnf rator))
-         (pmatch v-rator
-           [,v-rator (guard (symbol? v-rator))
-             (do
-               (v-rand <- (bv-wnf rand))
-               (return `(,v-rator ,v-rand)))]
-           [(lambda (,x) ,body) (guard (symbol? x))
-            (do
-              (v-rand <- (bv-wnf rand))
-              (s <- get)
-              (if (< s MAX_BETA)
-                  (do                      
-                    (put (add1 s))
-                    (rec <- (beta v-rand x body))
-                    (bv-wnf rec))
-                  (do
-                    (put MAX_BETA)
-                    (return '_))))]
-           [(,v-rat-rat ,v-rat-ran)
-            (do
-                (v-rand <- (bv-wnf rand))
-                (return `(,v-rator ,v-rand)))]))])))
+       (do (v-rator <- (bv-wnf rator))
+           (pmatch v-rator
+             [,v-rator (guard (symbol? v-rator))
+              (do (v-rand <- (bv-wnf rand))
+                  (return `(,v-rator ,v-rand)))]
+             [(lambda (,x) ,body) (guard (symbol? x))
+              (do (v-rand <- (bv-wnf rand))
+                  (s <- get)
+                  (if (< s MAX_BETA)
+                      (do (put (add1 s))
+                          (rec <- (beta v-rand x body))
+                          (bv-wnf rec))
+                      (do (put MAX_BETA)
+                          (return '_))))]
+             [(,v-rat-rat ,v-rat-ran)
+               (do (v-rand <- (bv-wnf rand))
+                   (return `(,v-rator ,v-rand)))]))])))
 
 (define ao-nf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do
-         (v-body <- (ao-nf body))
-         (return `(lambda (,x) ,v-body)))]
+       (do (v-body <- (ao-nf body))
+           (return `(lambda (,x) ,v-body)))]
       [(,rator ,rand)
-       (do
-         (v-rator <- (ao-nf rator))
-         (pmatch v-rator
-           [,v-rator (guard (symbol? v-rator))
-             (do
-               (v-rand <- (ao-nf rand))
-               (return `(,v-rator ,v-rand)))]
-           [(lambda (,x) ,body) (guard (symbol? x))
-            (do
-              (v-rand <- (ao-nf rand))
-              (s <- get)
-              (if (< s MAX_BETA)
-                  (do                      
-                    (put (add1 s))
-                    (rec <- (beta v-rand x body))
-                    (ao-nf rec))
-                  (do
-                    (put MAX_BETA)
-                    (return '_))))]
-           [(,v-rat-rat ,v-rat-ran)
-            (do
-                (v-rand <- (ao-nf rand))
-                (return `(,v-rator ,v-rand)))]))])))
+       (do (v-rator <- (ao-nf rator))
+           (pmatch v-rator
+             [,v-rator (guard (symbol? v-rator))
+                       (do (v-rand <- (ao-nf rand))
+                           (return `(,v-rator ,v-rand)))]
+             [(lambda (,x) ,body) (guard (symbol? x))
+              (do (v-rand <- (ao-nf rand))
+                  (s <- get)
+                (if (< s MAX_BETA)
+                    (do (put (add1 s))
+                        (rec <- (beta v-rand x body))
+                        (ao-nf rec))
+                    (do (put MAX_BETA)
+                        (return '_))))]
+             [(,v-rat-rat ,v-rat-ran)
+              (do (v-rand <- (ao-nf rand))
+                  (return `(,v-rator ,v-rand)))]))])))
 
 (define he-hnf
   (lambda (exp)
     (pmatch exp
       [,exp (guard (symbol? exp)) (return exp)]
       [(lambda (,x) ,body) (guard (symbol? x))
-       (do
-         (v-body <- (he-hnf body))
-         (return `(lambda (,x) ,v-body)))]
+       (do (v-body <- (he-hnf body))
+           (return `(lambda (,x) ,v-body)))]
       [(,rator ,rand)
-       (do
-         (v-rator <- (he-hnf rator))
-         (pmatch v-rator
-           [,v-rator (guard (symbol? v-rator))
-            (return `(,v-rator ,rand))]
-           [(lambda (,x) ,body) (guard (symbol? x))
-            (do
-              (s <- get)
-              (if (< s MAX_BETA)
-                  (do
-                    (put (add1 s))
-                    (rec <- (beta rand x body))
-                    (he-hnf rec))
-                  (do
-                    (put MAX_BETA)
-                    (return '_))))]
-           [(,rat ,ran)
-            (return `(,v-rator ,rand))]))])))
+       (do (v-rator <- (he-hnf rator))
+           (pmatch v-rator
+             [,v-rator (guard (symbol? v-rator))
+              (return `(,v-rator ,rand))]
+             [(lambda (,x) ,body) (guard (symbol? x))
+              (do (s <- get)
+                  (if (< s MAX_BETA)
+                      (do (put (add1 s))
+                          (rec <- (beta rand x body))
+                          (he-hnf rec))
+                      (do (put MAX_BETA)
+                          (return '_))))]
+             [(,rat ,ran)
+              (return `(,v-rator ,rand))]))])))
 
 (define jot-bv-wnf
   (lambda (bls v)
@@ -205,10 +187,9 @@
       ((1 . ,dbls)
        (jot-bv-wnf dbls `(lambda (x) (lambda (y) (,v (x y))))))
       ((0 . ,dbls)
-       (do
-           (n-v <- (bv-wnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
-                         (lambda (x) (lambda (y) x)))))
-         (jot-bv-wnf dbls n-v))))))
+       (do (n-v <- (bv-wnf `((,v (lambda (x) (lambda (y) (lambda (z) ((x z) (y z))))))
+                             (lambda (x) (lambda (y) x)))))
+           (jot-bv-wnf dbls n-v))))))
 
 ;; bv to wnf
 (define jot-bv-wnf-interface
